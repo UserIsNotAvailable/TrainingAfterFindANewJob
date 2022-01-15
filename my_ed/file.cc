@@ -1,16 +1,18 @@
 #include "file.h"
 
 namespace MyEd {
-    File::File() : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1),
+    File::File() : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1, FileConstant::FILE_DELIMITER),
                    m_current_line_num(FileConstant::DEFAULT_CURRENT_LINE_NUM) {}
 
-    File::File(const std::string &lines) {
-        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, lines);
+    File::File(const std::string &lines) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
+                                                    FileConstant::FILE_DELIMITER) {
+        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, lines);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
-    File::File(std::istream &input_stream) {
-        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, input_stream);
+    File::File(std::istream &input_stream) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
+                                                      FileConstant::FILE_DELIMITER) {
+        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, input_stream);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
@@ -36,28 +38,27 @@ namespace MyEd {
     }
 
     bool File::IsEmptyFile() const {
-        return GetLineCount() == FileConstant::DEFAULT_LINE_COUNT &&
-               _GetLine(FileConstant::DEFAULT_CURRENT_LINE_NUM) == FileConstant::EMPTY_LINE_MARK;
+        return GetLineCount() == FileConstant::DEFAULT_LINE_COUNT;
     }
 
     //C
     File &File::LoadFrom(const std::string &input_string) {
         Clear();
-        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, input_string);
+        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, input_string);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
         return *this;
     }
 
     File &File::LoadFrom(std::istream &input_stream) {
         Clear();
-        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, input_stream);
+        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, input_stream);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
         return *this;
     }
 
     File &File::LoadFrom(const File &another_file) {
         Clear();
-        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, another_file);
+        InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, another_file);
         m_current_line_num = another_file.GetCurrentLineNum();
         return *this;
     }
@@ -77,16 +78,13 @@ namespace MyEd {
 
     size_t File::InsertOneOrMultiplyLines(size_t line_num, const std::string &input_lines) {
         ValidateInsertParam(line_num);
-        if (IsEmptyFile()) {
-            _EraseLine(FileConstant::DEFAULT_CURRENT_LINE_NUM);
-        }
         m_current_line_num = line_num - 1;
-        std::vector<std::string> splits = StringUtil::Split(input_lines, FileConstant::FILE_DELIMITER);
-        for (auto ritr = splits.rbegin(); ritr != splits.rend(); ++ritr) {
-            _InsertLine(line_num, std::move(*ritr));
+        std::vector<std::string> lines = StringUtil::Split(input_lines, FileConstant::FILE_DELIMITER);
+        for (auto ritr = lines.rbegin(); ritr != lines.rend(); ++ritr) {
+            _InsertLine(line_num, std::move(*ritr) + FileConstant::FILE_DELIMITER);
             ++m_current_line_num;
         }
-        return splits.size();
+        return lines.size();
     }
 
     size_t File::InsertOneOrMultiplyLines(size_t line_num, std::istream &input_stream) {
@@ -97,11 +95,8 @@ namespace MyEd {
 
     size_t File::InsertOneOrMultiplyLines(size_t line_num, const File &another_file) {
         ValidateInsertParam(line_num);
-        if (IsEmptyFile()) {
-            _EraseLine(FileConstant::DEFAULT_CURRENT_LINE_NUM);
-        }
         m_current_line_num = line_num - 1;
-        for (size_t i = another_file.GetLineCount(); i >= FileConstant::DEFAULT_CURRENT_LINE_NUM; --i) {
+        for (size_t i = another_file.GetLineCount(); i > FileConstant::DEFAULT_CURRENT_LINE_NUM; --i) {
             _InsertLine(line_num, another_file._GetLine(i));
             ++m_current_line_num;
         }
@@ -161,7 +156,7 @@ namespace MyEd {
 
     const File &File::SaveTo(File &another_file) const {
         another_file.Clear();
-        another_file.InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM, _GetAll());
+        another_file.InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, _GetAll());
         return *this;
     }
 
@@ -180,15 +175,10 @@ namespace MyEd {
     std::string File::GetLine(size_t line_num) {
         ValidateReadUpdateDeleteParam(line_num);
         m_current_line_num = line_num;
-        if (line_num < GetLineCount()) {
-            return _GetLine(line_num) + FileConstant::FILE_DELIMITER;
-        } else {
-            return _GetLine(line_num);
-        }
+        return _GetLine(line_num);
     }
 
     std::string File::operator[](size_t line_num) {
-        ValidateReadUpdateDeleteParam(line_num);
         return GetLine(line_num);
     }
 
@@ -210,19 +200,8 @@ namespace MyEd {
     //D
     void File::EraseLine(size_t line_num) {
         ValidateReadUpdateDeleteParam(line_num);
-        if (IsEmptyFile()) {
-            return;
-        }
-
-        if (GetLineCount() == line_num) {
-            m_buffer[line_num] = FileConstant::EMPTY_LINE_MARK;
-        } else {
-            _EraseLine(line_num);
-        }
-
-        if (GetLineCount() == 0) {
-            Clear();
-        } else if (GetLineCount() < line_num) {
+        _EraseLine(line_num);
+        if (GetLineCount() < line_num) {
             m_current_line_num = GetLineCount();
         } else {
             m_current_line_num = line_num;
@@ -245,7 +224,7 @@ namespace MyEd {
 
     // parameters validating
     void File::ValidateInsertParam(size_t line_num) const {
-        if (line_num < FileConstant::DEFAULT_CURRENT_LINE_NUM || line_num >= m_buffer.max_size()) {
+        if (line_num <= FileConstant::DEFAULT_CURRENT_LINE_NUM || line_num >= m_buffer.max_size()) {
             throw std::out_of_range(FileConstant::EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE);
         }
     }
@@ -259,7 +238,7 @@ namespace MyEd {
     }
 
     void File::ValidateReadUpdateDeleteParam(size_t line_num) const {
-        if (line_num < FileConstant::DEFAULT_CURRENT_LINE_NUM || line_num > GetLineCount()) {
+        if (line_num <= FileConstant::DEFAULT_CURRENT_LINE_NUM || line_num > GetLineCount()) {
             throw std::out_of_range(FileConstant::EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE);
         }
     }
@@ -278,7 +257,7 @@ namespace MyEd {
         if (expected_new_line_num <= m_buffer.size()) {
             return;
         }
-        m_buffer.resize(expected_new_line_num, FileConstant::EMPTY_LINE_MARK);
+        m_buffer.resize(expected_new_line_num, FileConstant::FILE_DELIMITER);
     }
 
     void File::_InsertLine(size_t line_num, const std::string &new_line) {
@@ -302,11 +281,7 @@ namespace MyEd {
         ValidateReadUpdateDeleteParams(line_from, line_to);
         std::vector<std::string> tmp;
         while (line_from <= line_to) {
-            if (line_from < GetLineCount()) {
-                tmp.push_back(_GetLine(line_from) + FileConstant::FILE_DELIMITER);
-            } else {
-                tmp.push_back(_GetLine(line_from));
-            }
+            tmp.push_back(_GetLine(line_from) );
             ++line_from;
         }
         return tmp;

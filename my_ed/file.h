@@ -13,10 +13,9 @@ namespace MyEd {
 
     class FileConstant {
     public:
-        static const size_t DEFAULT_CURRENT_LINE_NUM = 1;
-        static const size_t DEFAULT_LINE_COUNT = 1;
+        static const size_t DEFAULT_CURRENT_LINE_NUM = 0;
+        static const size_t DEFAULT_LINE_COUNT = 0;
         static inline const char *FILE_DELIMITER = "\n";
-        static inline const char *EMPTY_LINE_MARK = "";
 
         static inline const char *EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE = "Line number must greater than 1 and less or equal than last line.";
         static inline const char *EXCEPTION_MESSAGE_BAD_LINE_NUM_ORDER = "The first line number must less or equal than the second one.";

@@ -29,6 +29,14 @@ namespace MyEd {
         static inline const char *COMMAND_INSERT = R"(^([\.\$]?|[+|-]?\d*)i$)";
         // (.,.)d
         static inline const char *COMMAND_DELETE = R"(^([\.\$]?|[+|-]?\d*)d|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)d$)";
+        // (.,.)c
+        static inline const char *COMMAND_CHANGE = R"(^([\.\$]?|[+|-]?\d*)c|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)c$)";
+        // (.,.)m(.)
+        static inline const char *COMMAND_MOVE = R"(^([\.\$]?|[+|-]?\d*)m([\.\$]?|[+|-]?\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)m([\.\$]?|[+|-]?\d*)$)";
+        // (.,.)t(.)
+        static inline const char *COMMAND_COPY = R"(^([\.\$]?|[+|-]?\d*)t([\.\$]?|[+|-]?\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)t([\.\$]?|[+|-]?\d*)$)";
+        // (.,.+1)j
+        static inline const char *COMMAND_JOIN = R"(^([\.\$]?|[+|-]?\d*)j|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)j$)";
 
         // answer yes
         static inline const char *ANSWER_YES = "^y$";
@@ -37,7 +45,7 @@ namespace MyEd {
 
 
         // quit insert code mark
-        static inline const char *MARK_QUIT_INSERT_MODE = R"(^\.\n|[\s\S]*\n\.\n$)";
+        static inline const char *MARK_QUIT_INSERT_MODE = R"(^(\.\n)|([\s\S]*?)\n\.\n$)";
         // current line mark
         static inline const char *MARK_CURRENT_LINE = R"(^\.$)";
         // last line mark
@@ -50,8 +58,6 @@ namespace MyEd {
         static inline const char *EMPTY_STRING_MARK = R"(^(?![\s\S]))";
         // comma
         static inline const char *COMMA = R"(^\,$)";
-        // print end
-        static inline const char *END_MARK = R"(<END)";
         // line print divider
         static inline const char *LINE_PRINT_DIVIDER = R"(:)";
         // newline code
@@ -70,7 +76,7 @@ namespace MyEd {
         static inline const char *STR_SHOW_FILE_INFO_END = "================= END =================";
 
         // default n of (.+1)z n
-        static inline const size_t DEFAULT_SCROLL_LINES = 21;
+        static inline const size_t DEFAULT_SCROLL_LINES = 22;
     };
 
     class Editor {
@@ -91,16 +97,20 @@ namespace MyEd {
     private:
 
         [[nodiscard]] size_t _HandleParam(const std::string &) const;
-        static std::string _GetUserInputLine();
+        static bool _GetUserInputLine(std::string &);
 
         [[nodiscard]] bool _QuitEditor() const;
 
         void _ShowFileInfo() const;
-        void _Print(const std::smatch &smatch_params);
+        void _Print(const std::smatch &smatch_params, std::ostream &output_stream);
         void _PrintWithLineNum(const std::smatch &smatch_params);
         void _Scroll(const std::smatch &smatch_params);
         void _Append(const std::smatch &smatch_params);
         void _Insert(const std::smatch &smatch_params);
         void _Delete(const std::smatch &smatch_params);
+        void _Change(const std::smatch &smatch_params);
+        void _Move(const std::smatch &smatch_params);
+        void _Copy(const std::smatch &smatch_params);
+        void _Join(const std::smatch &smatch_params);
     };
 }

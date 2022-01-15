@@ -2,6 +2,7 @@
 
 #include <sys/stat.h>
 
+#include <numeric>
 #include <regex>
 #include <string>
 
@@ -40,17 +41,16 @@ namespace MyEd {
 
         // split string with specified delimiter
         static inline std::vector<std::string> Split(std::string input_string, const std::string &delimiter_string) {
-            std::smatch match;
             std::regex delimiter_regex(delimiter_string);
-            std::vector<std::string> splits;
+            std::sregex_token_iterator
+                    first{input_string.begin(), input_string.end(), delimiter_regex, -1},
+                    last;
+            return {first, last};
+        }
 
-            while (regex_search(input_string, match, delimiter_regex)) {
-                size_t position = match.position();
-                splits.push_back(std::move(input_string.substr(0, position)));
-                input_string = input_string.substr(position + match.length());
-            }
-            splits.push_back(std::move(input_string));
-            return splits;
+        // combine a vector of strings
+        static inline std::string Combine(std::vector<std::string> vector_of_strings) {
+            return std::accumulate(vector_of_strings.begin(), vector_of_strings.end(), std::string(""));
         }
 
         //regex match

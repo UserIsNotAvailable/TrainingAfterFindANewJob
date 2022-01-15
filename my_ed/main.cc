@@ -4,6 +4,7 @@
 #include "editor.h"
 
 static const char *FILE_OPEN_FAILED_INFO = "File does not exist, opened a new file.";
+static const char *DEFAULT_COMMAND = "p";
 
 void Usage(const std::string &proc) {
     std::cout << "Usage: " << proc << " [file_name]" << std::endl;
@@ -27,8 +28,11 @@ int main(int argc, char *argv[]) {
 
     std::string command;
     do {
-        std::cin >> std::ws;
+        std::cin.clear();
         std::getline(std::cin, command);
+        if (command == MyEd::EditorConstants::EMPTY_STRING) {
+            command = DEFAULT_COMMAND;
+        }
     } while (ed->InputCommand(command));
 
     ed->Destroys();

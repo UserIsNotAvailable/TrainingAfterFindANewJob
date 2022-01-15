@@ -44,10 +44,10 @@ namespace MyEd {
                 return _QuitEditor();
                 // =
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_SHOW_FILE_INFO)) {
-                // (.,.)p
                 _ShowFileInfo();
+                // (.,.)p
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_PRINT, smatch_params)) {
-                _Print(smatch_params);
+                _Print(smatch_params, std::cout);
                 // (.,.)n
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_PRINT_WITH_LINE_NUM, smatch_params)) {
                 _PrintWithLineNum(smatch_params);
@@ -63,6 +63,18 @@ namespace MyEd {
                 // (.,.)d
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_DELETE, smatch_params)) {
                 _Delete(smatch_params);
+                // others
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_CHANGE, smatch_params)) {
+                _Change(smatch_params);
+                // others
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_MOVE, smatch_params)) {
+                _Move(smatch_params);
+                // others
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_COPY, smatch_params)) {
+                _Copy(smatch_params);
+                // others
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_JOIN, smatch_params)) {
+                _Join(smatch_params);
                 // others
             } else {
                 std::cout << EditorConstants::STR_WRONG_COMMAND << std::endl;
@@ -114,24 +126,27 @@ namespace MyEd {
         return ret;
     }
 
-    std::string Editor::_GetUserInputLine() {
-        std::string ret;
-        // read from input stream until getting a single "\n\." or "xxx\n.\n"
+    bool Editor::_GetUserInputLine(std::string &ret) {
+        std::string tmp;
+        std::smatch smatch_quit_mark;
+        // read from input stream until getting a single "\.\n" or a "xxx\n.\n"
         do {
             char ch;
             std::cin.get(ch);
-            ret += ch;
-            if (StringUtil::Match(ret, EditorConstants::MARK_QUIT_INSERT_MODE)) {
+            tmp += ch;
+            if (StringUtil::Match(tmp, EditorConstants::MARK_QUIT_INSERT_MODE, smatch_quit_mark)) {
                 break;
             }
         } while (true);
 
-        // erase the last ".\n"
-        if (!ret.empty()) {
-            ret.pop_back();
-            ret.pop_back();
+        // "\.\n", which means user quit edit mode without changing the file.
+        if (!StringUtil::Match(smatch_quit_mark[1], EditorConstants::EMPTY_STRING_MARK)) {
+            return false;
+            // "xxx\n\.\n", user input must be handled.
+        } else {
+            ret += smatch_quit_mark[2];
+            return true;
         }
-        return ret;
     }
 
     bool Editor::_QuitEditor() const {
@@ -139,7 +154,7 @@ namespace MyEd {
             std::string answer;
             do {
                 std::cout << EditorConstants::STR_FILE_EDITED_BUT_NOT_SAVED_WARING << std::flush;
-                std::cin >> answer;
+                std::getline(std::cin, answer);
                 if (StringUtil::Match(answer, EditorConstants::ANSWER_YES)) {
                     return false;
                 } else if (StringUtil::Match(answer, EditorConstants::ANSWER_NO)) {
@@ -157,23 +172,20 @@ namespace MyEd {
                   << EditorConstants::STR_SHOW_FILE_INFO_END << std::endl;
     }
 
-    void Editor::_Print(const std::smatch &smatch_params) {
+    void Editor::_Print(const std::smatch &smatch_params, std::ostream &output_stream) {
         // (line_from,line_to)p
         if (StringUtil::Match(smatch_params[3], EditorConstants::COMMA)) {
             size_t line_from = _HandleParam(smatch_params[2]);
             size_t line_to = _HandleParam(smatch_params[4]);
             m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
             std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_from, line_to);
-            for (auto &line: lines) {
-                std::cout << line;
-            }
+            output_stream << StringUtil::Combine(lines);
             // (line)p
         } else {
             size_t line_num = _HandleParam(smatch_params[1]);
             m_buffer->ValidateReadUpdateDeleteParam(line_num);
-            std::cout << m_buffer->GetLine(line_num);
+            output_stream << m_buffer->GetLine(line_num);
         }
-        std::cout << EditorConstants::END_MARK << std::endl;
     }
 
     void Editor::_PrintWithLineNum(const std::smatch &smatch_params) {
@@ -193,11 +205,10 @@ namespace MyEd {
             m_buffer->ValidateReadUpdateDeleteParam(line_num);
             std::cout << line_num << EditorConstants::LINE_PRINT_DIVIDER << m_buffer->GetLine(line_num);
         }
-        std::cout << EditorConstants::END_MARK << std::endl;
     }
 
     void Editor::_Scroll(const std::smatch &smatch_params) {
-        // assume first param note entered, scrow from next line of current line
+        // assume first param note entered, scroll from next line of current line
         size_t line_from = m_buffer->GetCurrentLineNum() + 1;
         // if at the last line of the file
         if (line_from > m_buffer->GetLineCount()) {
@@ -212,7 +223,7 @@ namespace MyEd {
         m_buffer->ValidateReadUpdateDeleteParam(line_from);
 
         // default value
-        size_t line_to = line_from + EditorConstants::DEFAULT_SCROLL_LINES;
+        size_t line_to = line_from + EditorConstants::DEFAULT_SCROLL_LINES - 1;
 
         // if n is entered
         if (!StringUtil::Match(smatch_params[2], EditorConstants::EMPTY_STRING_MARK)) {
@@ -222,38 +233,27 @@ namespace MyEd {
             line_to = m_buffer->GetLineCount();
         }
         std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_from, line_to);
-        for (auto &line: lines) {
-            std::cout << line;
-        }
-        std::cout << EditorConstants::END_MARK << std::endl;
+        std::cout << StringUtil::Combine(lines);
     }
 
     void Editor::_Append(const std::smatch &smatch_params) {
         size_t line_num = _HandleParam(smatch_params[1]) + 1;
         m_buffer->ValidateInsertParam(line_num);
-        std::string input_lines = _GetUserInputLine();
-        if (!StringUtil::Match(input_lines, EditorConstants::EMPTY_STRING_MARK)) {
-            // a "\n" will insert two empty lines, so turn it to "" before insertion
-            if (StringUtil::Match(input_lines, EditorConstants::NEWLINE_CODE)) {
-                input_lines = EditorConstants::EMPTY_STRING;
-            }
+        std::string input_lines;
+        if (_GetUserInputLine(input_lines)) {
             m_buffer->InsertOneOrMultiplyLines(line_num, input_lines);
+            m_modified_but_not_saved = true;
         }
-        m_modified_but_not_saved = true;
     }
 
     void Editor::_Insert(const std::smatch &smatch_params) {
         size_t line_num = _HandleParam(smatch_params[1]);
         m_buffer->ValidateInsertParam(line_num);
-        std::string input_lines = _GetUserInputLine();
-        if (!StringUtil::Match(input_lines, EditorConstants::EMPTY_STRING_MARK)) {
-            // a "\n" will insert two empty lines, so turn it to "" before insertion
-            if (StringUtil::Match(input_lines, EditorConstants::NEWLINE_CODE)) {
-                input_lines = EditorConstants::EMPTY_STRING;
-            }
+        std::string input_lines;
+        if (_GetUserInputLine(input_lines)) {
             m_buffer->InsertOneOrMultiplyLines(line_num, input_lines);
+            m_modified_but_not_saved = true;
         }
-        m_modified_but_not_saved = true;
     }
 
     void Editor::_Delete(const std::smatch &smatch_params) {
@@ -264,6 +264,87 @@ namespace MyEd {
             m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
             m_buffer->EraseLinesFromTo(line_from, line_to);
             // (line)d
+        } else {
+            size_t line_num = _HandleParam(smatch_params[1]);
+            m_buffer->ValidateReadUpdateDeleteParam(line_num);
+            m_buffer->EraseLine(line_num);
+        }
+        m_modified_but_not_saved = true;
+    }
+
+    void Editor::_Change(const std::smatch &smatch_params) {
+        _Delete(smatch_params);
+        std::string input_lines;
+        if (_GetUserInputLine(input_lines)) {
+            m_buffer->InsertOneOrMultiplyLines(m_buffer->GetCurrentLineNum(), input_lines);
+            m_modified_but_not_saved = true;
+        }
+    }
+
+    void Editor::_Move(const std::smatch &smatch_params) {
+        // (line_src_from, line_src_to)m(line_dst)
+        if (StringUtil::Match(smatch_params[4], EditorConstants::COMMA)) {
+            size_t line_src_from = _HandleParam(smatch_params[3]);
+            size_t line_src_to = _HandleParam(smatch_params[5]);
+            size_t line_dst = _HandleParam(smatch_params[6]) + 1;
+            m_buffer->ValidateReadUpdateDeleteParams(line_src_from, line_src_to);
+            m_buffer->ValidateInsertParam(line_dst);
+            std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_src_from, line_src_to);
+            m_buffer->EraseLinesFromTo(line_src_from, line_src_to);
+            if (line_dst > line_src_from && line_dst <= line_src_to + 1) {
+                line_dst = line_src_from;
+            } else if (line_dst > line_src_to + 1) {
+                line_dst -= (line_src_to - line_src_from + 1);
+            }
+            m_buffer->InsertOneOrMultiplyLines(line_dst, StringUtil::Combine(lines));
+            // (line_src)m(line_dst)
+        } else {
+            size_t line_src = _HandleParam(smatch_params[1]);
+            size_t line_dst = _HandleParam(smatch_params[2]) + 1;
+            m_buffer->ValidateReadUpdateDeleteParam(line_src);
+            m_buffer->ValidateInsertParam(line_dst);
+            std::string line = m_buffer->GetLine(line_src);
+            m_buffer->EraseLine(line_src);
+            if (line_dst > line_src) {
+                line_dst -= 1;
+            }
+            m_buffer->InsertOneOrMultiplyLines(line_dst, line);
+
+        }
+        m_modified_but_not_saved = true;
+    }
+
+    void Editor::_Copy(const std::smatch &smatch_params) {
+        // (line_src_from, line_src_to)t(line_dst)
+        if (StringUtil::Match(smatch_params[4], EditorConstants::COMMA)) {
+            size_t line_src_from = _HandleParam(smatch_params[3]);
+            size_t line_src_to = _HandleParam(smatch_params[5]);
+            size_t line_dst = _HandleParam(smatch_params[6]) + 1;
+            m_buffer->ValidateReadUpdateDeleteParams(line_src_from, line_src_to);
+            m_buffer->ValidateInsertParam(line_dst);
+            std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_src_from, line_src_to);
+            m_buffer->InsertOneOrMultiplyLines(line_dst, StringUtil::Combine(lines));
+            // (line_src)t(line_dst)
+        } else {
+            size_t line_src = _HandleParam(smatch_params[1]);
+            size_t line_dst = _HandleParam(smatch_params[2]) + 1;
+            m_buffer->ValidateReadUpdateDeleteParam(line_src);
+            m_buffer->ValidateInsertParam(line_dst);
+            std::string line = m_buffer->GetLine(line_src);
+            m_buffer->InsertOneOrMultiplyLines(line_dst, line);
+
+        }
+        m_modified_but_not_saved = true;
+    }
+
+    void Editor::_Join(const std::smatch &smatch_params) {
+        // (line_from,line_to)j
+        if (StringUtil::Match(smatch_params[3], EditorConstants::COMMA)) {
+            size_t line_from = _HandleParam(smatch_params[2]);
+            size_t line_to = _HandleParam(smatch_params[4]) + 1;
+            m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
+            m_buffer->EraseLinesFromTo(line_from, line_to);
+            // (line)j
         } else {
             size_t line_num = _HandleParam(smatch_params[1]);
             m_buffer->ValidateReadUpdateDeleteParam(line_num);
