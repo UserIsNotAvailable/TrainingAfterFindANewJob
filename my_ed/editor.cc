@@ -151,6 +151,9 @@ namespace MyEd {
         do {
             char ch;
             std::cin.get(ch);
+            if (std::cin.eof()) {
+                return false;
+            }
             tmp += ch;
             if (StringUtil::Match(tmp, EditorConstants::MARK_QUIT_INSERT_MODE, smatch_quit_mark)) {
                 break;

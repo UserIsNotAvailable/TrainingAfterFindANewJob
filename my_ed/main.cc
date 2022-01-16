@@ -30,6 +30,9 @@ int main(int argc, char *argv[]) {
     do {
         std::cin.clear();
         std::getline(std::cin, command);
+        if (std::cin.eof()) {
+            break;
+        }
         if (command == MyEd::EditorConstants::EMPTY_STRING) {
             command = DEFAULT_COMMAND;
         }
