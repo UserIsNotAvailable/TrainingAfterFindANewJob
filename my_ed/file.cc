@@ -2,27 +2,32 @@
 
 namespace MyEd {
     File::File() : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1, FileConstant::FILE_DELIMITER),
-                   m_current_line_num(FileConstant::DEFAULT_CURRENT_LINE_NUM) {}
+                   m_current_line_num(FileConstant::DEFAULT_CURRENT_LINE_NUM),
+                   m_file_name(FileConstant::DEFAULT_FILE_NAME) {}
 
     File::File(const std::string &lines) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
-                                                    FileConstant::FILE_DELIMITER) {
+                                                    FileConstant::FILE_DELIMITER),
+                                           m_file_name(FileConstant::DEFAULT_FILE_NAME) {
         InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, lines);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
     File::File(std::istream &input_stream) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
-                                                      FileConstant::FILE_DELIMITER) {
+                                                      FileConstant::FILE_DELIMITER),
+                                             m_file_name(FileConstant::DEFAULT_FILE_NAME) {
         InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, input_stream);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
     File::File(const File &another_file) {
         this->m_buffer = another_file.m_buffer;
+        this->m_file_name = another_file.m_file_name;
         m_current_line_num = another_file.m_current_line_num;
     }
 
     File::File(File &&another_file) noexcept {
         this->m_buffer = std::move(another_file.m_buffer);
+        this->m_file_name = std::move(another_file.m_file_name);
         m_current_line_num = another_file.m_current_line_num;
         another_file.Clear();
     }
@@ -35,6 +40,18 @@ namespace MyEd {
 
     size_t File::GetCurrentLineNum() const {
         return m_current_line_num;
+    }
+
+    void File::SetCurrentLineNum(size_t new_num) {
+        m_current_line_num = new_num;
+    }
+
+    [[nodiscard]] const std::string &File::GetFileName() const {
+        return m_file_name;
+    }
+
+    void File::SetFileName(const std::string &new_file_name) {
+        m_file_name = new_file_name;
     }
 
     bool File::IsEmptyFile() const {
@@ -281,7 +298,7 @@ namespace MyEd {
         ValidateReadUpdateDeleteParams(line_from, line_to);
         std::vector<std::string> tmp;
         while (line_from <= line_to) {
-            tmp.push_back(_GetLine(line_from) );
+            tmp.push_back(_GetLine(line_from));
             ++line_from;
         }
         return tmp;

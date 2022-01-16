@@ -15,6 +15,7 @@ namespace MyEd {
     public:
         static const size_t DEFAULT_CURRENT_LINE_NUM = 0;
         static const size_t DEFAULT_LINE_COUNT = 0;
+        static inline const char *DEFAULT_FILE_NAME = "[new file]";
         static inline const char *FILE_DELIMITER = "\n";
 
         static inline const char *EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE = "Line number must greater than 1 and less or equal than last line.";
@@ -29,13 +30,11 @@ namespace MyEd {
         friend File operator+(const File &, const File &);
 
     private:
-
-
         std::deque<std::string> m_buffer;
         size_t m_current_line_num;
+        std::string m_file_name;
     public:
         File();
-
         explicit File(const std::string &);
         explicit File(std::istream &);
         File(const File &);
@@ -45,7 +44,13 @@ namespace MyEd {
 
         //meta
         [[nodiscard]] size_t GetLineCount() const;
+
         [[nodiscard]] size_t GetCurrentLineNum() const;
+        void SetCurrentLineNum(size_t);
+
+        [[nodiscard]] const std::string &GetFileName() const;
+        void SetFileName(const std::string &);
+
         [[nodiscard]] bool IsEmptyFile() const;
 
         //C
@@ -63,7 +68,6 @@ namespace MyEd {
         File &Append(const std::string &);
         File &Append(std::istream &);
         File &Append(const File &);
-
         File &operator<<(const std::string &);
         File &operator<<(std::istream &);
         File &operator<<(const File &);
@@ -103,7 +107,6 @@ namespace MyEd {
     private:
 
         void _AutoResize(size_t);
-
         void _InsertLine(size_t line_num, const std::string &new_line);
         void _InsertLine(size_t line_num, std::string &&new_line);
 

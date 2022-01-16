@@ -15,6 +15,8 @@ namespace MyEd {
     public:
         // q
         static inline const char *COMMAND_QUIT_EDITOR = "^q$";
+        // Q
+        static inline const char *COMMAND_QUIT_EDITOR_UNCONDITIONALLY = "^Q$";
         // =
         static inline const char *COMMAND_SHOW_FILE_INFO = R"(^\=$)";
         // (.,.)p
@@ -37,6 +39,14 @@ namespace MyEd {
         static inline const char *COMMAND_COPY = R"(^([\.\$]?|[+|-]?\d*)t([\.\$]?|[+|-]?\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)t([\.\$]?|[+|-]?\d*)$)";
         // (.,.+1)j
         static inline const char *COMMAND_JOIN = R"(^([\.\$]?|[+|-]?\d*)j|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)j$)";
+        // (.,$)w file
+        static inline const char *COMMAND_WRITE = R"(^([\.\$]?|[+|-]?\d*)w\ ([\s\S]*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)w\ ([\s\S]*)$)";
+        // e file
+        static inline const char *COMMAND_EDIT = R"(^e\ ([\s\S]*)$)";
+        // E file
+        static inline const char *COMMAND_EDIT_UNCONDITIONALLY = R"(^E\ ([\s\S]*)$)";
+        // ($)r file
+        static inline const char *COMMAND_READ_AND_APPEND = R"(^([\.\$]?|[+|-]?\d*)r\ ([\s\S]*)$)";
 
         // answer yes
         static inline const char *ANSWER_YES = "^y$";
@@ -62,17 +72,23 @@ namespace MyEd {
         static inline const char *LINE_PRINT_DIVIDER = R"(:)";
         // newline code
         static inline const char *NEWLINE_CODE = R"(\n)";
-        //  empty string
+        // empty string
         static inline const char *EMPTY_STRING = "";
+        // period
+        static inline const char *PERIOD = R"(\.)";
 
         // Message
         static inline const char *STR_WRONG_COMMAND = "Wrong command.";
 
-        static inline const char *STR_FILE_EDITED_BUT_NOT_SAVED_WARING = "This file is modified, are you sure to quit without saving?(y/n):";
+        static inline const char *STR_QUIT_WHEN_FILE_EDITED_BUT_NOT_SAVED_WARING = "This file is modified, are you sure to quit without saving it?(y/n):";
+        static inline const char *STR_LOAD_NEW_WHEN_FILE_EDITED_BUT_NOT_SAVED_WARING = "This file is modified, are you sure to load a new file without saving it?(y/n):";
+        static inline const char *STR_FILE_DOESNT_EXIST_WARING = "File doesn't exist.";
 
         static inline const char *STR_SHOW_FILE_INFO_BEGIN = "============== FILE INFO ==============";
-        static inline const char *STR_LINE_COUNT = "line count   : ";
-        static inline const char *STR_CURRENT_LINE = "current line : ";
+        static inline const char *STR_FILE_NAME = "file name   :";
+        static inline const char *STR_LINE_COUNT = "line count  :";
+        static inline const char *STR_CURRENT_LINE = "current line:";
+        static inline const char *STR_MODIFIED_BUT_NOT_SAVED = "modified    :";
         static inline const char *STR_SHOW_FILE_INFO_END = "================= END =================";
 
         // default n of (.+1)z n
@@ -90,6 +106,7 @@ namespace MyEd {
 
         void Init();
         bool Init(const std::string &file_name);
+
         void Destroys();
 
         bool InputCommand(std::string);
@@ -100,17 +117,22 @@ namespace MyEd {
         static bool _GetUserInputLine(std::string &);
 
         [[nodiscard]] bool _QuitEditor() const;
+        [[nodiscard]] bool _QuitEditorUnconditionally() const;
 
         void _ShowFileInfo() const;
-        void _Print(const std::smatch &smatch_params, std::ostream &output_stream);
-        void _PrintWithLineNum(const std::smatch &smatch_params);
-        void _Scroll(const std::smatch &smatch_params);
-        void _Append(const std::smatch &smatch_params);
-        void _Insert(const std::smatch &smatch_params);
-        void _Delete(const std::smatch &smatch_params);
-        void _Change(const std::smatch &smatch_params);
-        void _Move(const std::smatch &smatch_params);
-        void _Copy(const std::smatch &smatch_params);
-        void _Join(const std::smatch &smatch_params);
+        void _Print(const std::smatch &, std::ostream &output_stream);
+        void _PrintWithLineNum(const std::smatch &);
+        void _Scroll(const std::smatch &);
+        void _Append(const std::smatch &);
+        void _Insert(const std::smatch &);
+        void _Delete(const std::smatch &);
+        void _Change(const std::smatch &);
+        void _Move(const std::smatch &);
+        void _Copy(const std::smatch &);
+        void _Join(const std::smatch &);
+        void _Write(const std::smatch &);
+        void _Edit(const std::smatch &);
+        void _EditUnconditionally(const std::smatch &);
+        void _ReadAndAppend(const std::smatch &);
     };
 }
