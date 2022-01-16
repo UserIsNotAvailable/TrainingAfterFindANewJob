@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "editor.h"
@@ -16,14 +17,14 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    MyEd::Editor *ed = new MyEd::Editor;
+    std::unique_ptr<MyEd::Editor> up_ed(new MyEd::Editor);
     if (argc > 1) {
-        bool is_load_success = ed->Init(argv[1]);
+        bool is_load_success = up_ed->Init(argv[1]);
         if (!is_load_success) {
             std::cout << FILE_OPEN_FAILED_INFO << std::endl;
         }
     } else {
-        ed->Init();
+        up_ed->Init();
     }
 
     std::string command;
@@ -36,10 +37,9 @@ int main(int argc, char *argv[]) {
         if (command == MyEd::EditorConstants::EMPTY_STRING) {
             command = DEFAULT_COMMAND;
         }
-    } while (ed->InputCommand(command));
+    } while (up_ed->InputCommand(command));
 
-    ed->Destroys();
-    delete ed;
+    up_ed->Destroys();
 
     return 0;
 }

@@ -13,13 +13,13 @@ namespace MyEd {
 
     class FileConstant {
     public:
-        static const size_t DEFAULT_CURRENT_LINE_NUM = 0;
-        static const size_t DEFAULT_LINE_COUNT = 0;
-        static inline const char *DEFAULT_FILE_NAME = "[new file]";
-        static inline const char *FILE_DELIMITER = "\n";
+        constexpr static const size_t DEFAULT_CURRENT_LINE_NUM = 0;
+        constexpr static const size_t DEFAULT_LINE_COUNT = 0;
+        constexpr static inline const char *DEFAULT_FILE_NAME = "[new file]";
+        constexpr static inline const char *FILE_DELIMITER = "\n";
 
-        static inline const char *EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE = "Line number must greater than 1 and less or equal than last line.";
-        static inline const char *EXCEPTION_MESSAGE_BAD_LINE_NUM_ORDER = "The first line number must less or equal than the second one.";
+        constexpr static inline const char *EXCEPTION_MESSAGE_LINE_NUM_OUT_OF_RANGE = "Line number must greater than 1 and less or equal than last line.";
+        constexpr static inline const char *EXCEPTION_MESSAGE_BAD_LINE_NUM_ORDER = "The first line number must less or equal than the second one.";
     };
 
     class File {
@@ -106,15 +106,15 @@ namespace MyEd {
 
     private:
 
-        void _AutoResize(size_t);
-        void _InsertLine(size_t line_num, const std::string &new_line);
-        void _InsertLine(size_t line_num, std::string &&new_line);
+        void AutoResize_(size_t expected_new_line_num);
+        void InsertLine_(size_t line_num, const std::string &new_line);
+        void InsertLine_(size_t line_num, std::string &&new_line);
 
-        [[nodiscard]] const std::string &_GetLine(size_t line_num) const;
-        [[nodiscard]] std::vector<std::string> _GetLinesFromTo(size_t, size_t) const;
-        [[nodiscard]] std::string _GetAll() const;
+        [[nodiscard]] const std::string &GetLine_(size_t line_num) const;
+        [[nodiscard]] std::vector<std::string> GetLinesFromTo_(size_t line_from, size_t line_to) const;
+        [[nodiscard]] std::string GetAll_() const;
 
-        void _EraseLine(size_t);
+        void EraseLine_(size_t line_num);
     };
 
     std::string &operator<<(std::string &, const File &);

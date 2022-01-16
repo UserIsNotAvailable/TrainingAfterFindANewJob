@@ -98,7 +98,7 @@ namespace MyEd {
         m_current_line_num = line_num - 1;
         std::vector<std::string> lines = StringUtil::Split(input_lines, FileConstant::FILE_DELIMITER);
         for (auto ritr = lines.rbegin(); ritr != lines.rend(); ++ritr) {
-            _InsertLine(line_num, std::move(*ritr) + FileConstant::FILE_DELIMITER);
+            InsertLine_(line_num, std::move(*ritr) + FileConstant::FILE_DELIMITER);
             ++m_current_line_num;
         }
         return lines.size();
@@ -114,7 +114,7 @@ namespace MyEd {
         ValidateInsertParam(line_num);
         m_current_line_num = line_num - 1;
         for (size_t i = another_file.GetLineCount(); i > FileConstant::DEFAULT_CURRENT_LINE_NUM; --i) {
-            _InsertLine(line_num, another_file._GetLine(i));
+            InsertLine_(line_num, another_file.GetLine_(i));
             ++m_current_line_num;
         }
         return another_file.GetLineCount();
@@ -162,18 +162,18 @@ namespace MyEd {
     //R
     const File &File::SaveTo(std::string &output_string) const {
         output_string.clear();
-        output_string.append(_GetAll());
+        output_string.append(GetAll_());
         return *this;
     }
 
     const File &File::SaveTo(std::ostream &output_stream) const {
-        output_stream << _GetAll();
+        output_stream << GetAll_();
         return *this;
     }
 
     const File &File::SaveTo(File &another_file) const {
         another_file.Clear();
-        another_file.InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, _GetAll());
+        another_file.InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, GetAll_());
         return *this;
     }
 
@@ -192,7 +192,7 @@ namespace MyEd {
     std::string File::GetLine(size_t line_num) {
         ValidateReadUpdateDeleteParam(line_num);
         m_current_line_num = line_num;
-        return _GetLine(line_num);
+        return GetLine_(line_num);
     }
 
     std::string File::operator[](size_t line_num) {
@@ -202,12 +202,12 @@ namespace MyEd {
     std::vector<std::string> File::GetLinesFromTo(size_t line_from, size_t line_to) {
         ValidateReadUpdateDeleteParams(line_from, line_to);
         m_current_line_num = line_to;
-        return _GetLinesFromTo(line_from, line_to);
+        return GetLinesFromTo_(line_from, line_to);
     }
 
     std::string File::GetAll() {
         m_current_line_num = GetLineCount();
-        return _GetAll();
+        return GetAll_();
     }
 
     std::string File::operator*() {
@@ -217,7 +217,7 @@ namespace MyEd {
     //D
     void File::EraseLine(size_t line_num) {
         ValidateReadUpdateDeleteParam(line_num);
-        _EraseLine(line_num);
+        EraseLine_(line_num);
         if (GetLineCount() < line_num) {
             m_current_line_num = GetLineCount();
         } else {
@@ -235,7 +235,7 @@ namespace MyEd {
 
     void File::Clear() {
         m_buffer.clear();
-        _AutoResize(FileConstant::DEFAULT_LINE_COUNT + 1);
+        AutoResize_(FileConstant::DEFAULT_LINE_COUNT + 1);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
@@ -269,7 +269,7 @@ namespace MyEd {
     }
     ////////////////////////////////// Private //////////////////////////////////
 
-    void File::_AutoResize(size_t expected_new_line_num) {
+    void File::AutoResize_(size_t expected_new_line_num) {
         ValidateInsertParam(expected_new_line_num);
         if (expected_new_line_num <= m_buffer.size()) {
             return;
@@ -277,43 +277,43 @@ namespace MyEd {
         m_buffer.resize(expected_new_line_num, FileConstant::FILE_DELIMITER);
     }
 
-    void File::_InsertLine(size_t line_num, const std::string &new_line) {
+    void File::InsertLine_(size_t line_num, const std::string &new_line) {
         ValidateInsertParam(line_num);
-        _AutoResize(line_num);
+        AutoResize_(line_num);
         m_buffer.insert(m_buffer.begin() + line_num, new_line);
     }
 
-    void File::_InsertLine(size_t line_num, std::string &&new_line) {
+    void File::InsertLine_(size_t line_num, std::string &&new_line) {
         ValidateInsertParam(line_num);
-        _AutoResize(line_num);
+        AutoResize_(line_num);
         m_buffer.insert(m_buffer.begin() + line_num, new_line);
     }
 
-    const std::string &File::_GetLine(size_t line_num) const {
+    const std::string &File::GetLine_(size_t line_num) const {
         ValidateReadUpdateDeleteParam(line_num);
         return m_buffer[line_num];
     }
 
-    std::vector<std::string> File::_GetLinesFromTo(size_t line_from, size_t line_to) const {
+    std::vector<std::string> File::GetLinesFromTo_(size_t line_from, size_t line_to) const {
         ValidateReadUpdateDeleteParams(line_from, line_to);
         std::vector<std::string> tmp;
         while (line_from <= line_to) {
-            tmp.push_back(_GetLine(line_from));
+            tmp.push_back(GetLine_(line_from));
             ++line_from;
         }
         return tmp;
     }
 
-    std::string File::_GetAll() const {
+    std::string File::GetAll_() const {
         std::string tmp;
-        std::vector<std::string> all_lines = _GetLinesFromTo(1, GetLineCount());
+        std::vector<std::string> all_lines = GetLinesFromTo_(1, GetLineCount());
         for (auto &line: all_lines) {
             tmp.append(line);
         }
         return tmp;
     }
 
-    void File::_EraseLine(size_t line_num) {
+    void File::EraseLine_(size_t line_num) {
         ValidateReadUpdateDeleteParam(line_num);
         m_buffer.erase(m_buffer.begin() + line_num);
     }
