@@ -15,6 +15,7 @@ namespace MyEd {
     public:
         constexpr static const size_t DEFAULT_CURRENT_LINE_NUM = 0;
         constexpr static const size_t DEFAULT_LINE_COUNT = 0;
+        constexpr static const bool DEFAULT_MODIFY_STATUS = false;
         constexpr static inline const char *DEFAULT_FILE_NAME = "[new file]";
         constexpr static inline const char *FILE_DELIMITER = "\n";
 
@@ -33,6 +34,7 @@ namespace MyEd {
         std::deque<std::string> m_buffer;
         size_t m_current_line_num;
         std::string m_file_name;
+        bool m_modified_but_not_saved;
     public:
         File();
         explicit File(const std::string &);
@@ -50,6 +52,9 @@ namespace MyEd {
 
         [[nodiscard]] const std::string &GetFileName() const;
         void SetFileName(const std::string &);
+
+        [[nodiscard]] bool GetModifyStatus() const;
+        void SetModifyStatus(bool);
 
         [[nodiscard]] bool IsEmptyFile() const;
 

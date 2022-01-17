@@ -51,6 +51,9 @@ namespace MyEd {
         // (.,.)s/search/replacement/g
         // (.,.)s/search/replacement/n
         constexpr static inline const char *COMMAND_SEARCH_AND_REPLACE = R"(^([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)$)";
+        // u
+        constexpr static inline const char *COMMAND_UNDOES = R"(^u$)";
+
         // answer yes
         constexpr static inline const char *ANSWER_YES = "^y$";
         // answer no
@@ -104,7 +107,7 @@ namespace MyEd {
 
     private:
         File *m_buffer;
-        bool m_modified_but_not_saved;
+        File *m_buffer_prev;
     public:
         Editor();
         ~Editor();
@@ -140,5 +143,7 @@ namespace MyEd {
         void EditUnconditionally_(const std::smatch &);
         void ReadAndAppend_(const std::smatch &);
 	    void SearchAndReplace_(const std::smatch &);
+        void SavePrev_(const File &);
+        void Undoes_();
     };
 }

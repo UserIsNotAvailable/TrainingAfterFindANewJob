@@ -2,12 +2,12 @@
 
 namespace MyEd {
     Editor::Editor()
-            : m_buffer(nullptr), m_modified_but_not_saved(false) {}
+            : m_buffer(nullptr),
+              m_buffer_prev(nullptr) {}
 
     Editor::~Editor() {
         delete m_buffer;
         m_buffer = nullptr;
-        m_modified_but_not_saved = false;
     }
 
     void Editor::Init() {
@@ -34,7 +34,8 @@ namespace MyEd {
     void Editor::Destroys() {
         delete m_buffer;
         m_buffer = nullptr;
-        m_modified_but_not_saved = false;
+        delete m_buffer_prev;
+        m_buffer_prev = nullptr;
     }
 
     bool Editor::InputCommand(std::string command) {
@@ -97,6 +98,9 @@ namespace MyEd {
                 // (.,.)s/search/replacement/n
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_SEARCH_AND_REPLACE, smatch_params)) {
                 SearchAndReplace_(smatch_params);
+                // u
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_UNDOES, smatch_params)) {
+                Undoes_();
                 // others
             } else {
                 std::cout << EditorConstants::STR_WRONG_COMMAND << std::endl;
@@ -177,7 +181,7 @@ namespace MyEd {
     }
 
     bool Editor::QuitEditor_() const {
-        if (m_modified_but_not_saved) {
+        if (m_buffer->GetModifyStatus()) {
             std::string answer;
             do {
                 std::cout << EditorConstants::STR_QUIT_WHEN_FILE_EDITED_BUT_NOT_SAVED_WARING << std::flush;
@@ -201,7 +205,7 @@ namespace MyEd {
                   << EditorConstants::STR_FILE_NAME << m_buffer->GetFileName() << std::endl
                   << EditorConstants::STR_LINE_COUNT << m_buffer->GetLineCount() << std::endl
                   << EditorConstants::STR_CURRENT_LINE << m_buffer->GetCurrentLineNum() << std::endl
-                  << EditorConstants::STR_MODIFIED_BUT_NOT_SAVED << m_modified_but_not_saved << std::endl
+                  << EditorConstants::STR_MODIFIED_BUT_NOT_SAVED << m_buffer->GetModifyStatus() << std::endl
                   << EditorConstants::STR_SHOW_FILE_INFO_END << std::endl;
     }
 
@@ -274,8 +278,9 @@ namespace MyEd {
         m_buffer->ValidateInsertParam(line_num);
         std::string input_lines;
         if (GetUserInputLine_(input_lines)) {
+            SavePrev_(*m_buffer);
             m_buffer->InsertOneOrMultiplyLines(line_num, input_lines);
-            m_modified_but_not_saved = true;
+            m_buffer->SetModifyStatus(true);
         }
     }
 
@@ -284,8 +289,9 @@ namespace MyEd {
         m_buffer->ValidateInsertParam(line_num);
         std::string input_lines;
         if (GetUserInputLine_(input_lines)) {
+            SavePrev_(*m_buffer);
             m_buffer->InsertOneOrMultiplyLines(line_num, input_lines);
-            m_modified_but_not_saved = true;
+            m_buffer->SetModifyStatus(true);
         }
     }
 
@@ -295,22 +301,38 @@ namespace MyEd {
             size_t line_from = HandleParam_(smatch_params[2]);
             size_t line_to = HandleParam_(smatch_params[4]);
             m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
+            SavePrev_(*m_buffer);
             m_buffer->EraseLinesFromTo(line_from, line_to);
             // (line)d
         } else {
             size_t line_num = HandleParam_(smatch_params[1]);
             m_buffer->ValidateReadUpdateDeleteParam(line_num);
+            SavePrev_(*m_buffer);
             m_buffer->EraseLine(line_num);
         }
-        m_modified_but_not_saved = true;
+        m_buffer->SetModifyStatus(true);
+
     }
 
     void Editor::Change_(const std::smatch &smatch_params) {
-        Delete_(smatch_params);
+        size_t line_from;
+        size_t line_to;
+        // (line_from,line_to)c
+        if (StringUtil::Match(smatch_params[3], EditorConstants::COMMA)) {
+            line_from = HandleParam_(smatch_params[2]);
+            line_to = HandleParam_(smatch_params[4]);
+            // (line)c
+        } else {
+            line_from = HandleParam_(smatch_params[1]);
+            line_to = line_from;
+        }
+        m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
         std::string input_lines;
         if (GetUserInputLine_(input_lines)) {
+            SavePrev_(*m_buffer);
+            m_buffer->EraseLinesFromTo(line_from, line_to);
             m_buffer->InsertOneOrMultiplyLines(m_buffer->GetCurrentLineNum(), input_lines);
-            m_modified_but_not_saved = true;
+            m_buffer->SetModifyStatus(true);
         }
     }
 
@@ -322,6 +344,7 @@ namespace MyEd {
             size_t line_dst = HandleParam_(smatch_params[6]) + 1;
             m_buffer->ValidateReadUpdateDeleteParams(line_src_from, line_src_to);
             m_buffer->ValidateInsertParam(line_dst);
+            SavePrev_(*m_buffer);
             std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_src_from, line_src_to);
             m_buffer->EraseLinesFromTo(line_src_from, line_src_to);
             if (line_dst > line_src_from && line_dst <= line_src_to + 1) {
@@ -336,6 +359,7 @@ namespace MyEd {
             size_t line_dst = HandleParam_(smatch_params[2]) + 1;
             m_buffer->ValidateReadUpdateDeleteParam(line_src);
             m_buffer->ValidateInsertParam(line_dst);
+            SavePrev_(*m_buffer);
             std::string line = m_buffer->GetLine(line_src);
             m_buffer->EraseLine(line_src);
             if (line_dst > line_src) {
@@ -344,7 +368,7 @@ namespace MyEd {
             m_buffer->InsertOneOrMultiplyLines(line_dst, line);
 
         }
-        m_modified_but_not_saved = true;
+        m_buffer->SetModifyStatus(true);
     }
 
     void Editor::Copy_(const std::smatch &smatch_params) {
@@ -355,6 +379,7 @@ namespace MyEd {
             size_t line_dst = HandleParam_(smatch_params[6]) + 1;
             m_buffer->ValidateReadUpdateDeleteParams(line_src_from, line_src_to);
             m_buffer->ValidateInsertParam(line_dst);
+            SavePrev_(*m_buffer);
             std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_src_from, line_src_to);
             m_buffer->InsertOneOrMultiplyLines(line_dst, StringUtil::Combine(lines));
             // (line_src)t(line_dst)
@@ -363,11 +388,12 @@ namespace MyEd {
             size_t line_dst = HandleParam_(smatch_params[2]) + 1;
             m_buffer->ValidateReadUpdateDeleteParam(line_src);
             m_buffer->ValidateInsertParam(line_dst);
+            SavePrev_(*m_buffer);
             std::string line = m_buffer->GetLine(line_src);
             m_buffer->InsertOneOrMultiplyLines(line_dst, line);
 
         }
-        m_modified_but_not_saved = true;
+        m_buffer->SetModifyStatus(true);
     }
 
     void Editor::Join_(const std::smatch &smatch_params) {
@@ -388,11 +414,12 @@ namespace MyEd {
             line_to = line_from + 1;
         }
         m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
+        SavePrev_(*m_buffer);
         std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_from, line_to);
         m_buffer->EraseLinesFromTo(line_from, line_to);
         m_buffer->InsertOneOrMultiplyLines(line_from, StringUtil::Combine(
                 StringUtil::Split(StringUtil::Combine(lines), EditorConstants::NEWLINE_CODE)));
-        m_modified_but_not_saved = true;
+        m_buffer->SetModifyStatus(true);
     }
 
     void Editor::Write_(const std::smatch &smatch_params) {
@@ -432,6 +459,8 @@ namespace MyEd {
         }
 
         m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
+        // ?
+        //SavePrev_(*m_buffer);
         size_t current_line_num = m_buffer->GetCurrentLineNum();
         std::vector<std::string> lines = m_buffer->GetLinesFromTo(line_from, line_to);
         // to keep current line num same as before
@@ -439,7 +468,7 @@ namespace MyEd {
         std::ofstream of_stream(path);
         of_stream << StringUtil::Combine(lines);
         m_buffer->SetFileName(path);
-        m_modified_but_not_saved = false;
+        m_buffer->SetModifyStatus(false);
     }
 
     void Editor::Edit_(const std::smatch &smatch_params) {
@@ -447,7 +476,7 @@ namespace MyEd {
             throw std::runtime_error(EditorConstants::STR_FILE_DOESNT_EXIST_WARING);
         }
 
-        if (!m_modified_but_not_saved) {
+        if (!m_buffer->GetModifyStatus()) {
             EditUnconditionally_(smatch_params);
             return;
         }
@@ -470,11 +499,12 @@ namespace MyEd {
         if (!FileUtil::IsFileExists(in_file_path)) {
             throw std::runtime_error(EditorConstants::STR_FILE_DOESNT_EXIST_WARING);
         }
+        SavePrev_(*m_buffer);
         std::ifstream if_stream(in_file_path);
         if_stream >> *m_buffer;
         m_buffer->SetCurrentLineNum(m_buffer->GetLineCount());
         m_buffer->SetFileName(in_file_path);
-        m_modified_but_not_saved = false;
+        m_buffer->SetModifyStatus(false);
     }
 
     void Editor::ReadAndAppend_(const std::smatch &smatch_params) {
@@ -485,9 +515,10 @@ namespace MyEd {
         if (!FileUtil::IsFileExists(in_file_path)) {
             throw std::runtime_error(EditorConstants::STR_FILE_DOESNT_EXIST_WARING);
         }
+        SavePrev_(*m_buffer);
         std::ifstream if_stream(in_file_path);
         m_buffer->InsertOneOrMultiplyLines(line_num, if_stream);
-        m_modified_but_not_saved = true;
+        m_buffer->SetModifyStatus(true);
     }
 
     void Editor::SearchAndReplace_(const std::smatch &smatch_params) {
@@ -514,6 +545,8 @@ namespace MyEd {
 
         m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
         size_t current_line_num = m_buffer->GetCurrentLineNum();
+        File file_prev = *m_buffer;
+        bool replaced = false;
 
         // (.,.)s/search/replacement/g replace all specified word in (.,.)
         if (StringUtil::Match(search_mode, EditorConstants::GLOBAL)) {
@@ -523,7 +556,8 @@ namespace MyEd {
                     m_buffer->EraseLine(line_from);
                     m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
                     current_line_num = line_from;
-                    m_modified_but_not_saved = true;
+                    m_buffer->SetModifyStatus(true);
+                    replaced = true;
                 }
                 ++line_from;
             }
@@ -537,7 +571,8 @@ namespace MyEd {
                     m_buffer->EraseLine(line_from);
                     m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
                     current_line_num = line_from;
-                    m_modified_but_not_saved = true;
+                    m_buffer->SetModifyStatus(true);
+                    replaced = true;
                     break;
                 }
                 ++line_from;
@@ -558,8 +593,9 @@ namespace MyEd {
                         m_buffer->EraseLine(line_from);
                         m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
                         current_line_num = line_from;
-                        m_modified_but_not_saved = true;
+                        m_buffer->SetModifyStatus(true);
                         found = true;
+                        replaced = true;
                         break;
                     }
                 }
@@ -568,5 +604,25 @@ namespace MyEd {
         }
 
         m_buffer->SetCurrentLineNum(current_line_num);
+
+        if (replaced) {
+            SavePrev_(file_prev);
+        }
+    }
+
+    void Editor::SavePrev_(const File &file) {
+        if (m_buffer_prev == nullptr) {
+            m_buffer_prev = new File(file);
+        } else {
+            *m_buffer_prev = file;
+        }
+    }
+
+    void Editor::Undoes_() {
+        if (m_buffer_prev != nullptr) {
+            File *tmp = m_buffer;
+            m_buffer = m_buffer_prev;
+            m_buffer_prev = tmp;
+        }
     }
 }

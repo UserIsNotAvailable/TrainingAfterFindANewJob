@@ -3,18 +3,21 @@
 namespace MyEd {
     File::File() : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1, FileConstant::FILE_DELIMITER),
                    m_current_line_num(FileConstant::DEFAULT_CURRENT_LINE_NUM),
-                   m_file_name(FileConstant::DEFAULT_FILE_NAME) {}
+                   m_file_name(FileConstant::DEFAULT_FILE_NAME),
+                   m_modified_but_not_saved(FileConstant::DEFAULT_MODIFY_STATUS) {}
 
     File::File(const std::string &lines) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
                                                     FileConstant::FILE_DELIMITER),
-                                           m_file_name(FileConstant::DEFAULT_FILE_NAME) {
+                                           m_file_name(FileConstant::DEFAULT_FILE_NAME),
+                                           m_modified_but_not_saved(FileConstant::DEFAULT_MODIFY_STATUS) {
         InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, lines);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
 
     File::File(std::istream &input_stream) : m_buffer(FileConstant::DEFAULT_LINE_COUNT + 1,
                                                       FileConstant::FILE_DELIMITER),
-                                             m_file_name(FileConstant::DEFAULT_FILE_NAME) {
+                                             m_file_name(FileConstant::DEFAULT_FILE_NAME),
+                                             m_modified_but_not_saved(FileConstant::DEFAULT_MODIFY_STATUS) {
         InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, input_stream);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
     }
@@ -22,14 +25,15 @@ namespace MyEd {
     File::File(const File &another_file) {
         this->m_buffer = another_file.m_buffer;
         this->m_file_name = another_file.m_file_name;
-        m_current_line_num = another_file.m_current_line_num;
+        this->m_modified_but_not_saved = another_file.m_modified_but_not_saved;
+        this->m_current_line_num = another_file.m_current_line_num;
     }
 
     File::File(File &&another_file) noexcept {
         this->m_buffer = std::move(another_file.m_buffer);
         this->m_file_name = std::move(another_file.m_file_name);
-        m_current_line_num = another_file.m_current_line_num;
-        another_file.Clear();
+        this->m_current_line_num = another_file.m_current_line_num;
+        this->m_modified_but_not_saved = another_file.m_modified_but_not_saved;
     }
 
     ////////////////////////////////// Public //////////////////////////////////
@@ -52,6 +56,14 @@ namespace MyEd {
 
     void File::SetFileName(const std::string &new_file_name) {
         m_file_name = new_file_name;
+    }
+
+    [[nodiscard]] bool File::GetModifyStatus() const {
+        return m_modified_but_not_saved;
+    }
+
+    void File::SetModifyStatus(bool modified_but_not_saved) {
+        m_modified_but_not_saved = modified_but_not_saved;
     }
 
     bool File::IsEmptyFile() const {
@@ -77,6 +89,8 @@ namespace MyEd {
         Clear();
         InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, another_file);
         m_current_line_num = another_file.GetCurrentLineNum();
+        m_modified_but_not_saved = another_file.GetModifyStatus();
+        m_file_name = another_file.GetFileName();
         return *this;
     }
 
@@ -174,6 +188,9 @@ namespace MyEd {
     const File &File::SaveTo(File &another_file) const {
         another_file.Clear();
         another_file.InsertOneOrMultiplyLines(FileConstant::DEFAULT_CURRENT_LINE_NUM + 1, GetAll_());
+        another_file.SetCurrentLineNum(m_current_line_num);
+        another_file.SetFileName(m_file_name);
+        another_file.SetModifyStatus(m_modified_but_not_saved);
         return *this;
     }
 
@@ -237,6 +254,8 @@ namespace MyEd {
         m_buffer.clear();
         AutoResize_(FileConstant::DEFAULT_LINE_COUNT + 1);
         m_current_line_num = FileConstant::DEFAULT_CURRENT_LINE_NUM;
+        m_file_name = FileConstant::DEFAULT_FILE_NAME;
+        m_modified_but_not_saved = FileConstant::DEFAULT_MODIFY_STATUS;
     }
 
     // parameters validating
