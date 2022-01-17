@@ -47,7 +47,10 @@ namespace MyEd {
         constexpr static inline const char *COMMAND_EDIT_UNCONDITIONALLY = R"(^E\ ([\s\S]*)$)";
         // ($)r file
         constexpr static inline const char *COMMAND_READ_AND_APPEND = R"(^([\.\$]?|[+|-]?\d*)r\ ([\s\S]*)$)";
-
+        // (.,.)s/search/replacement/
+        // (.,.)s/search/replacement/g
+        // (.,.)s/search/replacement/n
+        constexpr static inline const char *COMMAND_SEARCH_AND_REPLACE = R"(^([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)$)";
         // answer yes
         constexpr static inline const char *ANSWER_YES = "^y$";
         // answer no
@@ -76,6 +79,8 @@ namespace MyEd {
         constexpr static inline const char *EMPTY_STRING = "";
         // period
         constexpr static inline const char *PERIOD = R"(\.)";
+        // global
+        constexpr static inline const char *GLOBAL = R"(^g$)";
 
         // Message
         constexpr static inline const char *STR_WRONG_COMMAND = "Wrong command.";
@@ -120,19 +125,20 @@ namespace MyEd {
         [[nodiscard]] bool QuitEditorUnconditionally_() const;
 
         void ShowFileInfo_() const;
-        void Print_(const std::smatch &smatch_params, std::ostream &output_stream);
-        void PrintWithLineNum_(const std::smatch &smatch_params);
-        void Scroll_(const std::smatch &smatch_params);
-        void Append_(const std::smatch &smatch_params);
-        void Insert_(const std::smatch &smatch_params);
-        void Delete_(const std::smatch &smatch_params);
-        void Change_(const std::smatch &smatch_params);
-        void Move_(const std::smatch &smatch_params);
-        void Copy_(const std::smatch &smatch_params);
-        void Join_(const std::smatch &smatch_params);
-        void Write_(const std::smatch &smatch_params);
-        void Edit_(const std::smatch &smatch_params);
-        void EditUnconditionally_(const std::smatch &smatch_params);
-        void ReadAndAppend_(const std::smatch &smatch_params);
+        void Print_(const std::smatch &, std::ostream &);
+        void PrintWithLineNum_(const std::smatch &);
+        void Scroll_(const std::smatch &);
+        void Append_(const std::smatch &);
+        void Insert_(const std::smatch &);
+        void Delete_(const std::smatch &);
+        void Change_(const std::smatch &);
+        void Move_(const std::smatch &);
+        void Copy_(const std::smatch &);
+        void Join_(const std::smatch &);
+        void Write_(const std::smatch &);
+        void Edit_(const std::smatch &);
+        void EditUnconditionally_(const std::smatch &);
+        void ReadAndAppend_(const std::smatch &);
+	    void SearchAndReplace_(const std::smatch &);
     };
 }

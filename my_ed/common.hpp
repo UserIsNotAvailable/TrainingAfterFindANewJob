@@ -65,6 +65,30 @@ namespace MyEd {
         static bool Match(const char *str, const std::string &pattern, std::cmatch &cm) {
             return std::regex_match(str, cm, std::regex(pattern));
         }
-    };
 
+        // find the n-th substring of input string
+        template<typename T>
+        static std::string::size_type
+        NthSubstr(std::string::size_type n, const std::basic_string<T> &s, const std::basic_string<T> &p,
+                  bool repeats = false) {
+            std::string::size_type i = s.find(p);
+            std::string::size_type adv = (repeats) ? 1 : p.length();
+            std::string::size_type j;
+            for (j = 1; j < n && i != std::basic_string<T>::npos; ++j) i = s.find(p, i + adv);
+            if (j == n) return i;
+            else return -1;
+        }
+
+        static bool ReplaceAll(std::string &str, const std::string &from, const std::string &to) {
+            bool replaced = false;
+            if (from.empty()) return replaced;
+            size_t start_pos = 0;
+            while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+                str.replace(start_pos, from.length(), to);
+                start_pos += to.length();
+                replaced = true;
+            }
+            return replaced;
+        }
+    };
 }

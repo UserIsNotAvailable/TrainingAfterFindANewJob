@@ -92,6 +92,11 @@ namespace MyEd {
                 // ($)r file
             } else if (StringUtil::Match(command, EditorConstants::COMMAND_READ_AND_APPEND, smatch_params)) {
                 ReadAndAppend_(smatch_params);
+                // (.,.)s/search/replacement/
+                // (.,.)s/search/replacement/g
+                // (.,.)s/search/replacement/n
+            } else if (StringUtil::Match(command, EditorConstants::COMMAND_SEARCH_AND_REPLACE, smatch_params)) {
+                SearchAndReplace_(smatch_params);
                 // others
             } else {
                 std::cout << EditorConstants::STR_WRONG_COMMAND << std::endl;
@@ -369,7 +374,7 @@ namespace MyEd {
         size_t line_from;
         size_t line_to;
         // (line_from,line_to)j
-        if (StringUtil::Match(smatch_params[4], EditorConstants::COMMA)) {
+        if (StringUtil::Match(smatch_params[3], EditorConstants::COMMA)) {
             line_from = HandleParam_(smatch_params[2]);
             if (StringUtil::Match(smatch_params[4], EditorConstants::PERIOD) ||
                 StringUtil::Match(smatch_params[4], EditorConstants::EMPTY_STRING_MARK)) {
@@ -483,5 +488,85 @@ namespace MyEd {
         std::ifstream if_stream(in_file_path);
         m_buffer->InsertOneOrMultiplyLines(line_num, if_stream);
         m_modified_but_not_saved = true;
+    }
+
+    void Editor::SearchAndReplace_(const std::smatch &smatch_params) {
+        size_t line_from;
+        size_t line_to;
+        std::string search_word;
+        std::string replacement;
+        std::string search_mode;
+        // (line_from,line_to)j
+        if (StringUtil::Match(smatch_params[6], EditorConstants::COMMA)) {
+            line_from = HandleParam_(smatch_params[5]);
+            line_to = HandleParam_(smatch_params[7]);
+            search_word = smatch_params[8];
+            replacement = smatch_params[9];
+            search_mode = smatch_params[10];
+            // (line_num)j
+        } else {
+            line_from = HandleParam_(smatch_params[1]);
+            line_to = line_from;
+            search_word = smatch_params[2];
+            replacement = smatch_params[3];
+            search_mode = smatch_params[4];
+        }
+
+        m_buffer->ValidateReadUpdateDeleteParams(line_from, line_to);
+        size_t current_line_num = m_buffer->GetCurrentLineNum();
+
+        // (.,.)s/search/replacement/g replace all specified word in (.,.)
+        if (StringUtil::Match(search_mode, EditorConstants::GLOBAL)) {
+            while (line_from <= line_to) {
+                std::string tmp = m_buffer->GetLine(line_from);
+                if (StringUtil::ReplaceAll(tmp, search_word, replacement)) {
+                    m_buffer->EraseLine(line_from);
+                    m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
+                    current_line_num = line_from;
+                    m_modified_but_not_saved = true;
+                }
+                ++line_from;
+            }
+            // (.,.)s/search/replacement/ replace the first specified word found in (.,.)
+        } else if (StringUtil::Match(search_mode, EditorConstants::EMPTY_STRING_MARK)) {
+            while (line_from <= line_to) {
+                std::string tmp = m_buffer->GetLine(line_from);
+                std::string::size_type pos;
+                if ((pos = StringUtil::NthSubstr(1, tmp, search_word)) != -1) {
+                    tmp.replace(pos, search_word.size(), replacement);
+                    m_buffer->EraseLine(line_from);
+                    m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
+                    current_line_num = line_from;
+                    m_modified_but_not_saved = true;
+                    break;
+                }
+                ++line_from;
+            }
+            // (.,.)s/search/replacement/n replace the n-th specified word found in (.,.)
+        } else {
+            size_t n = HandleParam_(search_mode);
+            bool found = false;
+            while (!found && line_from <= line_to) {
+                std::string tmp = m_buffer->GetLine(line_from);
+                std::string::size_type pos;
+                size_t i = 1;
+                while ((pos = StringUtil::NthSubstr(i, tmp, search_word)) != -1) {
+                    ++i;
+                    --n;
+                    if (n == 0) {
+                        tmp.replace(pos, search_word.size(), replacement);
+                        m_buffer->EraseLine(line_from);
+                        m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
+                        current_line_num = line_from;
+                        m_modified_but_not_saved = true;
+                        found = true;
+                        break;
+                    }
+                }
+                ++line_from;
+            }
+        }
+
+        m_buffer->SetCurrentLineNum(current_line_num);
     }
 }
