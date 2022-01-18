@@ -331,7 +331,7 @@ namespace MyEd {
         if (GetUserInputLine_(input_lines)) {
             SavePrev_(*m_buffer);
             m_buffer->EraseLinesFromTo(line_from, line_to);
-            m_buffer->InsertOneOrMultiplyLines(m_buffer->GetCurrentLineNum(), input_lines);
+            m_buffer->InsertOneOrMultiplyLines(line_from, input_lines);
             m_buffer->SetModifyStatus(true);
         }
     }
@@ -508,7 +508,12 @@ namespace MyEd {
     }
 
     void Editor::ReadAndAppend_(const std::smatch &smatch_params) {
-        size_t line_num = HandleParam_(smatch_params[1]) + 1;
+        size_t line_num;
+        if (StringUtil::Match(smatch_params[1], EditorConstants::EMPTY_STRING_MARK)) {
+            line_num = m_buffer->GetLineCount() + 1;
+        } else {
+            line_num = HandleParam_(smatch_params[1]) + 1;
+        }
         m_buffer->ValidateInsertParam(line_num);
 
         std::string in_file_path = smatch_params[2];
@@ -573,31 +578,27 @@ namespace MyEd {
                     current_line_num = line_from;
                     m_buffer->SetModifyStatus(true);
                     replaced = true;
-                    break;
                 }
                 ++line_from;
             }
             // (.,.)s/search/replacement/n replace the n-th specified word found in (.,.)
         } else {
             size_t n = HandleParam_(search_mode);
-            bool found = false;
-            while (!found && line_from <= line_to) {
+            while (line_from <= line_to) {
                 std::string tmp = m_buffer->GetLine(line_from);
                 std::string::size_type pos;
                 size_t i = 1;
                 while ((pos = StringUtil::NthSubstr(i, tmp, search_word)) != -1) {
-                    ++i;
-                    --n;
-                    if (n == 0) {
+                    if (i == n) {
                         tmp.replace(pos, search_word.size(), replacement);
                         m_buffer->EraseLine(line_from);
                         m_buffer->InsertOneOrMultiplyLines(line_from, tmp);
                         current_line_num = line_from;
                         m_buffer->SetModifyStatus(true);
-                        found = true;
                         replaced = true;
                         break;
                     }
+                    ++i;
                 }
                 ++line_from;
             }

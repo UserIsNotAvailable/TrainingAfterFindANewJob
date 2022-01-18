@@ -5,7 +5,7 @@
 #include "editor.h"
 
 static const char *FILE_OPEN_FAILED_INFO = "File does not exist, opened a new file.";
-static const char *DEFAULT_COMMAND = "p";
+static const char *DEFAULT_COMMAND = "+p";
 
 void Usage(const std::string &proc) {
     std::cout << "Usage: " << proc << " [file_name]" << std::endl;

@@ -20,7 +20,7 @@ namespace MyEd {
         // =
         constexpr static inline const char *COMMAND_SHOW_FILE_INFO = R"(^\=$)";
         // (.,.)p
-        constexpr static inline const char *COMMAND_PRINT = R"(^([\.\$]?|[+|-]?\d*)p|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)p$)";
+        constexpr static inline const char *COMMAND_PRINT = R"(^([\.\$]?|[+|-]?\d*)p?|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)p?$)";
         // (.,.)n
         constexpr static inline const char *COMMAND_PRINT_WITH_LINE_NUM = R"(^([\.\$]?|[+|-]?\d*)n|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)n$)";
         // (.+1)z n
@@ -50,7 +50,7 @@ namespace MyEd {
         // (.,.)s/search/replacement/
         // (.,.)s/search/replacement/g
         // (.,.)s/search/replacement/n
-        constexpr static inline const char *COMMAND_SEARCH_AND_REPLACE = R"(^([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|\d*)$)";
+        constexpr static inline const char *COMMAND_SEARCH_AND_REPLACE = R"(^([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|[1-9]\d*|\s*)|([\.\$]?|[+|-]?\d*)(,)([\.\$]?|[+|-]?\d*)s/([\s\S]*)/([\s\S]*)/(g|[1-9]\d*|\s*)$)";
         // u
         constexpr static inline const char *COMMAND_UNDOES = R"(^u$)";
 
@@ -142,7 +142,7 @@ namespace MyEd {
         void Edit_(const std::smatch &);
         void EditUnconditionally_(const std::smatch &);
         void ReadAndAppend_(const std::smatch &);
-	    void SearchAndReplace_(const std::smatch &);
+	void SearchAndReplace_(const std::smatch &);
         void SavePrev_(const File &);
         void Undoes_();
     };
